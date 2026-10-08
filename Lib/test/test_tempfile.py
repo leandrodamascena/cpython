@@ -2156,6 +2156,37 @@ class TestTemporaryDirectory(BaseTestCase):
 
 
 class TestMisc(BaseTestCase):
+    def test_has_directory_component(self):
+        valid = [
+            "name",
+            b"name",
+            os_helper.FakePath("name"),
+            os_helper.FakePath(b"name"),
+        ]
+        invalid = [
+            f"dir{os.sep}name",
+            os.fsencode(f"dir{os.sep}name"),
+            os_helper.FakePath(f"dir{os.sep}name"),
+        ]
+        if os.altsep is not None:
+            invalid.extend((
+                f"dir{os.altsep}name",
+                os.fsencode(f"dir{os.altsep}name"),
+            ))
+        if support.MS_WINDOWS:
+            invalid.extend(("C:name", b"C:name"))
+
+        for value in valid:
+            with self.subTest(value=value):
+                self.assertFalse(
+                    tempfile._has_directory_component(value)
+                )
+        for value in invalid:
+            with self.subTest(value=value):
+                self.assertTrue(
+                    tempfile._has_directory_component(value)
+                )
+
     def test_prefix_suffix_error(self):
         tests = [
             f"dir{os.sep}name",

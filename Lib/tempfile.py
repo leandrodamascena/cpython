@@ -114,19 +114,44 @@ def _infer_return_type(*args):
     return return_type
 
 
+if _os.name == "nt":
+    def _has_directory_component(path):
+        path_type = type(path)
+        if path_type is str:
+            if "\\" not in path and "/" not in path and ":" not in path:
+                return False
+        elif path_type is bytes:
+            if 92 not in path and 47 not in path and 58 not in path:
+                return False
+        return bool(_os.path.dirname(path))
+else:
+    _dir_sep = _os.sep
+    _dir_sep_byte = ord(_os.fsencode(_os.sep))
+
+    def _has_directory_component(path):
+        path_type = type(path)
+        if path_type is str:
+            if _dir_sep not in path:
+                return False
+        elif path_type is bytes:
+            if _dir_sep_byte not in path:
+                return False
+        return bool(_os.path.dirname(path))
+
+
 def _sanitize_params(prefix, suffix, dir):
     """Common parameter processing for most APIs in this module."""
     output_type = _infer_return_type(prefix, suffix, dir)
     if suffix is None:
         suffix = output_type()
-    if _os.path.dirname(suffix):
+    if _has_directory_component(suffix):
         raise ValueError("suffix can't contain a directory component")
     if prefix is None:
         if output_type is str:
             prefix = template
         else:
             prefix = _os.fsencode(template)
-    if _os.path.dirname(prefix):
+    if _has_directory_component(prefix):
         raise ValueError("prefix can't contain a directory component")
     if dir is None:
         if output_type is str:
